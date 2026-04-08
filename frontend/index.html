@@ -21,7 +21,6 @@
       <h2>Patient Information</h2>
 
       <form id="registrationForm">
-
         <div class="form-group">
           <label>First Name</label>
           <input type="text" id="firstName" required>
@@ -65,7 +64,6 @@
         <button type="submit">Submit</button>
 
         <div id="locationResult" style="margin-top:15px; font-weight:bold;"></div>
-
       </form>
     </section>
 
@@ -76,15 +74,38 @@
         <p>No appointment scheduled yet.</p>
       </div>
     </section>
-
   </div>
 
-  <!-- JavaScript -->
   <script>
     const form = document.getElementById("registrationForm");
     const resultDiv = document.getElementById("locationResult");
     const outputBox = document.getElementById("outputBox");
 
+    /* ===== localStorage helpers (DATABASE LAYER) ===== */
+    function getAppointments() {
+      return JSON.parse(localStorage.getItem("appointments")) || [];
+    }
+
+    function saveAppointment(appointment) {
+      const appointments = getAppointments();
+      appointments.push(appointment);
+      localStorage.setItem("appointments", JSON.stringify(appointments));
+    }
+
+    function displayLatestAppointment() {
+      const appointments = getAppointments();
+      if (appointments.length === 0) return;
+
+      const latest = appointments[appointments.length - 1];
+      outputBox.innerHTML = `
+        <p><strong>Patient:</strong> ${latest.patientName}</p>
+        <p><strong>Date:</strong> ${latest.date}</p>
+        <p><strong>Time:</strong> ${latest.time}</p>
+        <p><strong>Location:</strong> ${latest.location}</p>
+      `;
+    }
+
+    /* ===== Form submission logic ===== */
     form.addEventListener("submit", function (event) {
       event.preventDefault();
 
@@ -96,7 +117,7 @@
         .substring(0, 3)
         .toUpperCase();
 
-      // Generate a realistic appointment (1 week from today)
+      // Generate appointment (1 week from today, business hours)
       const appointmentDate = new Date();
       appointmentDate.setDate(appointmentDate.getDate() + 7);
 
@@ -115,31 +136,33 @@
       // API call
       fetch(`https://api.zippopotam.us/ca/${postalCode}`)
         .then(response => {
-          if (!response.ok) {
-            throw new Error("Invalid postal code");
-          }
+          if (!response.ok) throw new Error();
           return response.json();
         })
         .then(data => {
           const place = data.places[0];
 
+          const appointment = {
+            patientName: `${firstName} ${lastName}`,
+            date: formattedDate,
+            time: formattedTime,
+            location: `${place["place name"]}, ${place["state"]}`
+          };
+
           resultDiv.textContent =
             `Location found: ${place["place name"]}, ${place["state"]}`;
 
-          outputBox.innerHTML = `
-            <p><strong>Patient:</strong> ${firstName} ${lastName}</p>
-            <p><strong>Date:</strong> ${formattedDate}</p>
-            <p><strong>Time:</strong> ${formattedTime}</p>
-            <p><strong>Location:</strong> ${place["place name"]}, ${place["state"]}</p>
-          `;
+          saveAppointment(appointment);     // ✅ save to database
+          displayLatestAppointment();       // ✅ update UI
         })
         .catch(() => {
           resultDiv.textContent = "Postal code could not be validated.";
-          outputBox.innerHTML =
-            "<p>Appointment could not be scheduled due to invalid location.</p>";
         });
     });
-  </script>
 
+    /* ===== Load saved data on page load ===== */
+    displayLatestAppointment();
+  </script>
 </body>
 </html>
+``
