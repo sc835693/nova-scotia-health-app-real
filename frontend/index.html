@@ -1,104 +1,145 @@
-<!-- Azure deployment test -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nova Scotia Health Registration</title>
-    <link rel="stylesheet" href="styles1.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nova Scotia Health Registration</title>
+  <link rel="stylesheet" href="styles1.css">
 </head>
+
 <body>
+  <div class="container">
 
-    <div class="container">
-        <!-- Header -->
-        <header>
-            <img src="ns_health_logo.png" alt="Nova Scotia Health Logo" class="logo">
-            <h1>Nova Scotia Health Registration</h1>
-        </header>
+    <!-- Header -->
+    <header>
+      <img src="ns_health_logo.png" alt="Nova Scotia Health Logo" class="logo">
+      <h1>Nova Scotia Health Registration</h1>
+    </header>
 
-        <!-- Registration Form -->
-        <section class="form-section">
-            <h2>Patient Information</h2>
-            <form id="registrationForm">
-                
-                <div class="form-group">
-                    <label>First Name</label>
-                    <input type="text" id="firstName" required>
-                </div>
+    <!-- Registration Form -->
+    <section class="form-section">
+      <h2>Patient Information</h2>
 
-                <div class="form-group">
-                    <label>Last Name</label>
-                    <input type="text" id="lastName" required>
-                </div>
+      <form id="registrationForm">
 
-                <div class="form-group">
-                    <label>Health Card Number</label>
-                    <input type="text" id="healthCard" required>
-                </div>
+        <div class="form-group">
+          <label>First Name</label>
+          <input type="text" id="firstName" required>
+        </div>
 
-                <div class="form-group">
-                    <label>Address</label>
-                    <input type="text" id="address" required>
-                </div>
+        <div class="form-group">
+          <label>Last Name</label>
+          <input type="text" id="lastName" required>
+        </div>
 
-                <div class="form-group">
-                    <label>Phone Number</label>
-                    <input type="tel" id="phone" required>
-                </div>
+        <div class="form-group">
+          <label>Health Card Number</label>
+          <input type="text" id="healthCard" required>
+        </div>
 
-                <div class="form-group">
-                    <label>Date of Birth</label>
-                    <input type="date" id="dob" required>
-                </div>
+        <div class="form-group">
+          <label>Address</label>
+          <input type="text" id="address" required>
+        </div>
 
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="email">
-                </div>
+        <div class="form-group">
+          <label>Postal Code</label>
+          <input type="text" id="postalCode" placeholder="B3H 2Y9" required>
+        </div>
 
-                <button type="submit">Submit</button>
-            </form>
-        </section>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" id="phone" required>
+        </div>
 
-        <!-- Output Section -->
-        <section class="output-section">
-            <h2>Upcoming Appointments</h2>
-            <div id="outputBox">
-                <p>No appointment information available yet.</p>
-            </div>
-        </section>
-    </div>
+        <div class="form-group">
+          <label>Date of Birth</label>
+          <input type="date" id="dob" required>
+        </div>
 
-    <!-- UPDATED SCRIPT (Connected to Azure Backend) -->
-    <script>
-        document.getElementById("registrationForm").addEventListener("submit", function(e) {
-            e.preventDefault();
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="email">
+        </div>
 
-            const firstName = document.getElementById("firstName").value;
-            const lastName = document.getElementById("lastName").value;
-            const healthCard = document.getElementById("healthCard").value;
+        <button type="submit">Submit</button>
 
-            fetch("https://ns-health-backend.azurewebsites.net/api/appointments", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    firstName: firstName,
-                    lastName: lastName,
-                    healthCard: healthCard
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById("outputBox").innerHTML = `<p>${data.message}</p>`;
-            })
-            .catch(err => {
-                console.error(err);
-                document.getElementById("outputBox").innerHTML = `<p style="color:red;">Error retrieving appointment data.</p>`;
-            });
+        <div id="locationResult" style="margin-top:15px; font-weight:bold;"></div>
+
+      </form>
+    </section>
+
+    <!-- Output Section -->
+    <section class="output-section">
+      <h2>Upcoming Appointment</h2>
+      <div id="outputBox">
+        <p>No appointment scheduled yet.</p>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    const form = document.getElementById("registrationForm");
+    const resultDiv = document.getElementById("locationResult");
+    const outputBox = document.getElementById("outputBox");
+
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      const firstName = document.getElementById("firstName").value;
+      const lastName = document.getElementById("lastName").value;
+
+      const postalCode = document.getElementById("postalCode").value
+        .replace(" ", "")
+        .substring(0, 3)
+        .toUpperCase();
+
+      // Generate a realistic appointment (1 week from today)
+      const appointmentDate = new Date();
+      appointmentDate.setDate(appointmentDate.getDate() + 7);
+
+      const hour = Math.floor(Math.random() * 8) + 9; // 9am–4pm
+      const minutes = Math.random() < 0.5 ? "00" : "30";
+
+      appointmentDate.setHours(hour);
+      appointmentDate.setMinutes(minutes);
+
+      const formattedDate = appointmentDate.toLocaleDateString();
+      const formattedTime = appointmentDate.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+
+      // API call
+      fetch(`https://api.zippopotam.us/ca/${postalCode}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error("Invalid postal code");
+          }
+          return response.json();
+        })
+        .then(data => {
+          const place = data.places[0];
+
+          resultDiv.textContent =
+            `Location found: ${place["place name"]}, ${place["state"]}`;
+
+          outputBox.innerHTML = `
+            <p><strong>Patient:</strong> ${firstName} ${lastName}</p>
+            <p><strong>Date:</strong> ${formattedDate}</p>
+            <p><strong>Time:</strong> ${formattedTime}</p>
+            <p><strong>Location:</strong> ${place["place name"]}, ${place["state"]}</p>
+          `;
+        })
+        .catch(() => {
+          resultDiv.textContent = "Postal code could not be validated.";
+          outputBox.innerHTML =
+            "<p>Appointment could not be scheduled due to invalid location.</p>";
         });
-    </script>
+    });
+  </script>
 
 </body>
 </html>
